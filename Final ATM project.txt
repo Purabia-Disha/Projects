@@ -1,0 +1,488 @@
+ATM_Interface class
+package com.asianbank;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Scanner;
+
+public class ATM_Interface {
+
+    static {
+        System.out.println("Welcome to Asian Bank");
+    }
+
+    public static void sleepMethod() {
+        try {
+            Thread.sleep((long) (5000 + Math.random() * 1000));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void successMsg() {
+        System.out.println("Your transaction has been successful");
+        System.out.println("Thank you");
+    }
+
+    public static void main(String[] args) {
+        Connection connection = null;
+        try {
+
+            Scanner scanner = new Scanner(System.in);
+            System.out.println("Press '1' to Register as a new user");
+            System.out.println("Press '2' to Authenticate and access functionalities");
+
+            int userChoice = scanner.nextInt();
+            Class.forName("com.mysql.jdbc.Driver");
+            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306?user=root&password=root");
+
+            switch (userChoice) {
+                case 1:
+                    // User Registration
+                    System.out.println("Please enter a new userID: ");
+                    String newUserId = scanner.next();
+                    System.out.println("Please enter a new PIN (4-digit number): ");
+                    int newPin = scanner.nextInt();
+
+                    // Create a new User object for registration
+                    User newUser = new User();
+                    newUser.setUserId(newUserId);
+                    newUser.setPin(newPin);
+
+                    // Insert the new user into the "users" table using UserDAO
+                    UserDAO userDAO = new UserDAO();
+                    boolean isUserInserted = userDAO.insertUser(connection, newUser);
+
+                    if (isUserInserted) {
+                        System.out.println("User registration successful!");
+                        System.out.println("Please proceed to authenticate and access functionalities.");
+                        // After successful registration, proceed to the main menu
+                        userChoice = 2; // Set userChoice to 2 to proceed to the main menu
+                    } else {
+                        System.out.println("User registration failed. Please try again.");
+                        System.exit(0);
+                    }
+                    break;
+
+                case 2:
+                    System.out.println("Please enter the userId: ");
+                    String userId = scanner.next();
+                    System.out.println("Please enter the pin: ");
+                    int pin = scanner.nextInt();
+
+                    // User authentication here
+                    userDAO = new UserDAO();
+                    User user = userDAO.authenticateUser(connection, userId, pin);
+                    if (user != null) {
+                        System.out.println("Authentication successful!");
+
+                        // Main menu loop
+                        boolean quit = false;
+                        while (!quit) {
+                            System.out.println("Press '1' to Withdraw Cash");
+                            System.out.println("Press '2' to Deposit Cash");
+                            System.out.println("Press '3' to Transfer Money");
+                            System.out.println("Press '4' to View Transaction History");
+                            System.out.println("Press '5' to Quit the transaction");
+
+                            int userInput = scanner.nextInt();
+                            double amount;
+
+                            switch (userInput) {
+                            case 1:
+                                // Implement withdrawal functionality
+                                System.out.println("Please enter the amount to withdraw: ");
+                                amount = scanner.nextDouble();
+
+                                if (amount <= 0) {
+                                    System.out.println("Invalid amount. Withdrawal amount must be greater than zero.");
+                                } else {
+                                    System.out.println("Please wait...your transaction is in process");
+                                    sleepMethod();
+                                    System.out.println("Please collect your cash");
+                                    sleepMethod();
+
+                                    // Create a new Transaction object for withdrawal
+                                    Transaction withdrawalTransaction = new Transaction();
+                                    withdrawalTransaction.setUserId(userId);
+                                    withdrawalTransaction.setType("withdrawal");
+                                    withdrawalTransaction.setAmount(amount);
+                                    withdrawalTransaction.setTimestamp(LocalDateTime.now());
+
+                                    // Store the transaction in the database using TransactionDAO
+                                    TransactionDAO transactionDAO = new TransactionDAO();
+                                    transactionDAO.insertTransaction(connection, withdrawalTransaction);
+
+                                    // Display success message
+                                    successMsg();
+                                }
+                                break;
+
+                            case 2:
+                                // Implement deposit functionality
+                                System.out.println("Please enter the amount to deposit: ");
+                                amount = scanner.nextDouble();
+
+                                if (amount <= 0) {
+                                    System.out.println("Invalid amount. Deposit amount must be greater than zero.");
+                                } else {
+                                    System.out.println("Please wait...your transaction is in process");
+                                    sleepMethod();
+                                    System.out.println("Please collect your receipt");
+                                    sleepMethod();
+
+                                    // Create a new Transaction object for deposit
+                                    Transaction depositTransaction = new Transaction();
+                                    depositTransaction.setUserId(userId);
+                                    depositTransaction.setType("deposit");
+                                    depositTransaction.setAmount(amount);
+                                    depositTransaction.setTimestamp(LocalDateTime.now());
+
+                                    // Store the transaction in the database using TransactionDAO
+                                    TransactionDAO transactionDAO = new TransactionDAO();
+                                    transactionDAO.insertTransaction(connection, depositTransaction);
+
+                                    // Update user's account balance here if needed
+                                    // ...
+
+                                    // Display success message
+                                    successMsg();
+                                }
+                                break;
+
+                            case 3:
+                            	   // Implement transfer functionality
+                                System.out.println("Please enter the recipient's userId: ");
+                                String recipientUserId = scanner.next();
+
+                                // Get recipient's user details from the database
+                                User recipientUser = userDAO.getUserByUserId(connection, recipientUserId);
+                                if (recipientUser != null) {
+                                    System.out.println("Recipient found!");
+
+                                    System.out.println("Please enter the amount to transfer: ");
+                                    amount = scanner.nextDouble();
+
+                                    if (amount <= 0) {
+                                        System.out.println("Invalid amount. Transfer amount must be greater than zero.");
+                                    } else {
+                                        // Perform the transfer
+                                        System.out.println("Please wait...your transfer is in process");
+                                        sleepMethod();
+                                        System.out.println("Transfer successful!");
+
+                                        // Create a new Transaction object for the transfer (from sender)
+                                        Transaction transferTransaction = new Transaction();
+                                        transferTransaction.setUserId(userId);
+                                        transferTransaction.setType("transfer");
+                                        transferTransaction.setAmount(-amount); // Negative amount to represent outgoing transfer
+                                        transferTransaction.setTimestamp(LocalDateTime.now());
+
+                                        // Create a new Transaction object for the transfer (to recipient)
+                                        Transaction recipientTransaction = new Transaction();
+                                        recipientTransaction.setUserId(recipientUserId);
+                                        recipientTransaction.setType("transfer");
+                                        recipientTransaction.setAmount(amount); // Positive amount to represent incoming transfer
+                                        recipientTransaction.setTimestamp(LocalDateTime.now());
+
+                                        // Store the transactions in the database using TransactionDAO
+                                        TransactionDAO transactionDAO = new TransactionDAO();
+                                        transactionDAO.insertTransaction(connection, transferTransaction);
+                                        transactionDAO.insertTransaction(connection, recipientTransaction);
+
+                                        // Update user's account balance and recipient's account balance here if needed
+                                        // ...
+
+                                        // Display success message
+                                        successMsg();
+                                    }
+                                } else {
+                                    System.out.println("Recipient not found in the database.");
+                                }
+                                break;
+
+                            case 4:
+                                // View Transaction History
+                                TransactionDAO transactionDAO = new TransactionDAO();
+                                List<Transaction> transactions = transactionDAO.getTransactionsByUserId(connection, userId);
+                                if (transactions.isEmpty()) {
+                                    System.out.println("No transaction history found.");
+                                } else {
+                                    System.out.println("Transaction History for User: " + userId);
+                                    for (Transaction transaction : transactions) {
+                                        System.out.println(transaction);
+                                    }
+                                }
+                                break;
+                                case 5:
+                                    System.out.println("Thank you for using Asian Bank ATM. Goodbye!");
+                                    quit = true;
+                                    break;
+
+                                default:
+                                    System.out.println("Invalid option. Please try again.");
+                                    break;
+                            }
+                        }
+                    } else {
+                        System.out.println("Authentication failed. Incorrect userId or pin.");
+                    }
+                    break;
+
+                default:
+                    System.out.println("Invalid option. Please try again.");
+                    break;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            // Close the connection in the finally block to release resources
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}
+
+
+Transaction Class
+package com.asianbank;
+
+import java.time.LocalDateTime;
+
+public class Transaction {
+    private int transactionId;
+    private String userId;
+    private String type;
+    private double amount;
+    private LocalDateTime timestamp;
+
+
+    public Transaction() {
+    }
+
+    public int getTransactionId() {
+        return transactionId;
+    }
+
+    public void setTransactionId(int transactionId) {
+        this.transactionId = transactionId;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public double getAmount() {
+        return amount;
+    }
+
+    public void setAmount(double amount) {
+        this.amount = amount;
+    }
+
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    
+    @Override
+    public String toString() {
+        return "Transaction{" +
+                "transactionId=" + transactionId +
+                ", userId='" + userId + '\'' +
+                ", type='" + type + '\'' +
+                ", amount=" + amount +
+                ", timestamp=" + timestamp +
+                '}';
+    }
+}
+
+
+
+User class
+package com.asianbank;
+
+public class User {
+
+	 private String userId;
+	    private int pin;
+	    private double accountBalance; 
+		public double getAccountBalance() {
+			return accountBalance;
+		}
+		public void setAccountBalance(double accountBalance) {
+			this.accountBalance = accountBalance;
+		}
+		public String getUserId() {
+			return userId;
+		}
+		public void setUserId(String userId) {
+			this.userId = userId;
+		}
+		public int getPin() {
+			return pin;
+		}
+		public void setPin(int pin) {
+			this.pin = pin;
+		}
+	    
+	    
+}
+
+
+
+UserDAO class
+package com.asianbank;
+	import java.sql.*;
+
+	public class UserDAO {
+
+//	     Method to authenticate the user based on userId and pin
+//	     Returns the User object if authentication is successful, null otherwise
+		public User authenticateUser(Connection connection, String userId, int pin) throws SQLException {
+		    String selectQuery = "SELECT * FROM atm.users WHERE userId = ? AND pin = ?";
+		    try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery)) {
+		        preparedStatement.setString(1, userId);
+		        preparedStatement.setInt(2, pin);
+		        try (ResultSet resultSet = preparedStatement.executeQuery()) {
+		            if (resultSet.next()) {
+		                User user = new User();
+		                user.setUserId(resultSet.getString("userId"));
+		                user.setPin(resultSet.getInt("pin"));
+		                user.setAccountBalance(resultSet.getDouble("accountBalance")); // Fetch account balance from database
+
+		                return user;
+		            }
+		        }
+		    }
+		    return null;
+		}
+		//Authenticate recipient's account in the database based on userId
+		public User getUserByUserId(Connection connection, String userId) throws SQLException {
+		    String selectQuery = "SELECT * FROM atm.users WHERE userId = ?";
+		    try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery)) {
+		        preparedStatement.setString(1, userId);
+		        try (ResultSet resultSet = preparedStatement.executeQuery()) {
+		            if (resultSet.next()) {
+		                User user = new User();
+		                user.setUserId(resultSet.getString("userId"));
+		                user.setPin(resultSet.getInt("pin"));
+		                user.setAccountBalance(resultSet.getDouble("accountBalance"));
+		                return user;
+		            }
+		        }
+		    }
+		    // User not found
+		    return null;
+		}
+		  public void updateBalance(Connection connection, String userId, double amount) throws SQLException {
+		        String updateQuery = "UPDATE atm.users SET accountBalance = accountBalance + ? WHERE userId = ?";
+		        try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+		            preparedStatement.setDouble(1, amount);
+		            preparedStatement.setString(2, userId);
+		            preparedStatement.executeUpdate();
+		            }
+		        }
+	    public boolean insertUser(Connection connection, User user) throws SQLException {
+	        String insertQuery = "INSERT INTO atm.users (userId, pin) VALUES (?, ?)";
+	        try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
+	            preparedStatement.setString(1, user.getUserId());
+	            preparedStatement.setInt(2, user.getPin());
+	            int rowsInserted = preparedStatement.executeUpdate();
+	            return rowsInserted > 0;
+	        }
+	        
+	    }
+	    
+
+}
+
+
+
+TransactionDAO class
+package com.asianbank;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+
+public class TransactionDAO {
+
+    // Method to insert a new transaction record into the database
+    public void insertTransaction(Connection connection, Transaction transaction) throws SQLException {
+        String insertQuery = "INSERT INTO atm.transactions (userId, type, amount) VALUES (?, ?, ?)";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
+            preparedStatement.setString(1, transaction.getUserId());
+            preparedStatement.setString(2, transaction.getType());
+            preparedStatement.setDouble(3, transaction.getAmount());
+            preparedStatement.executeUpdate();
+        }
+    }
+
+    // Method to fetch transaction history for a specific user based on userId
+    public List<Transaction> getTransactionsByUserId(Connection connection, String userId) throws SQLException {
+        List<Transaction> transactions = new ArrayList<>();
+        String selectQuery = "SELECT * FROM atm.transactions WHERE userId = ? ORDER BY timestamp DESC";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery)) {
+            preparedStatement.setString(1, userId);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    int transactionId = resultSet.getInt("transactionId");
+                    String type = resultSet.getString("type");
+                    double amount = resultSet.getDouble("amount");
+                   
+                    // LocalDateTime timestamp = resultSet.getTimestamp("timestamp").toLocalDateTime();
+                    // For simplicity, using Timestamp in this example
+                    Timestamp timestamp = resultSet.getTimestamp("timestamp");
+
+                    Transaction transaction = new Transaction();
+                    transaction.setTransactionId(transactionId);
+                    transaction.setUserId(userId);
+                    transaction.setType(type);
+                    transaction.setAmount(amount);
+                    transaction.setTimestamp(timestamp.toLocalDateTime());
+                    transactions.add(transaction);
+                }
+            }
+        }
+        return transactions;
+    }
+    // Method to update the user's account balance
+    public void updateBalance(Connection connection, String userId, double amount) throws SQLException {
+        String updateQuery = "UPDATE atm.users SET balance = balance + ? WHERE userId = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+            preparedStatement.setDouble(1, amount);
+            preparedStatement.setString(2, userId);
+            preparedStatement.executeUpdate();
+        }
+    }
+    
+}
