@@ -1,0 +1,649 @@
+Index:
+
+1) Login Module:
+
+i) HTML form for user login (login_form.html)
+ii) CSS styling for the form (style.css)
+iii) Servlet to validate user login credentials (LoginServlet)
+iv) JSP for user dashboard (user_dashboard.jsp)
+v) Logout functionality (LogoutServlet)
+
+2) Reservation System:
+
+i) HTML form for reservation (reservation_form.html)
+ii) Servlet to handle reservation (ReservationServlet)
+iii) DAO for reservations (ReservationDao)
+iv) JSP for reservation success (reservation_success.jsp)
+
+3) Cancellation Module:
+
+i) HTML form for cancellation (cancellation_form.html)
+ii) JSP for cancellation details (cancellation_details.jsp)
+iii) Servlet to confirm cancellation (CancellationServlet)
+iv) JSP for cancellation success (cancellation_success.jsp)
+v) JSP for cancellation error (cancellation_error.jsp)
+
+4) Entities:
+
+i) User entity (User.java)
+ii) Reservation entity (Reservation.java)
+=========================================================================
+1) Login Module:
+
+i) login_form.html
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div class="navbar">
+  <ul class="navBarList">
+    <li>TravelMate</li>
+  </ul>
+  <ul class="navBarList right">
+    <li>Home</li>
+    <li>Login <a href="login.html"></a> </li>
+    <li>Help</li>
+  </ul>
+</div>
+<div class="content">
+  <h2>Welcome to TravelMate</h2>
+  <p>Your Journey, Our Priority</p>
+</div>
+<div class="login-container">
+    <h2>Login</h2>
+    <form action="LoginServlet" method="post">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required><br>
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required><br>
+
+        <button type="submit">Login</button>
+    </form>
+    <p>Not registered yet? <a href="registration_form.html">Register here</a></p>
+</div>
+</body>
+</html>
+
+ii) style.css
+
+.main-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+    background-color: #f5f5f5;
+}
+
+.login-form {
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+    width: 300px;
+}
+
+.login-form h2 {
+    margin: 0;
+    margin-bottom: 10px;
+    font-size: 20px;
+    color: #333;
+}
+
+.login-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+
+.login-form input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+.login-form button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.login-form button:hover {
+    background-color: #0056b3;
+}
+
+iii) LoginServlet
+
+package org.jsp.travelmate.dto;
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.jsp.travelMateApp.dao.UserDao;
+
+@WebServlet("/LoginServlet")
+public class LoginServlet extends HttpServlet {
+    private UserDao userDao = new UserDao();
+
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String username = request.getParameter("username");
+        String password = request.getParameter("password");
+
+        User user = userDao.validateUser(username, password);
+
+        if (user != null) {
+            // Set user in session
+            request.getSession().setAttribute("user", user);
+
+            // Redirect to user dashboard
+            response.sendRedirect("user_dashboard.jsp");
+        } else {
+            // Redirect to login error page
+            response.sendRedirect("login_error.html");
+        }
+    }
+}
+
+iv) user_dashboard.jsp
+
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>User Dashboard</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <div class="content">
+        <h2>Welcome to your User Dashboard, <%= ((org.jsp.travelmate.dto.User) session.getAttribute("user")).getUsername() %></h2>
+        <p>Here's your dashboard content:</p>
+        <ul>
+            <li>User ID: <%= ((org.jsp.travelmate.dto.User) session.getAttribute("user")).getId() %></li>
+            <li>Username: <%= ((org.jsp.travelmate.dto.User) session.getAttribute("user")).getUsername() %></li>
+            <!-- Add more user information here -->
+        </ul>
+        <h3>Functionalities:</h3>
+        <ul>
+            <li><a href="reservation_form.html">Make a Reservation</a></li>
+            <li><a href="cancellation_form.html">Cancel a Reservation</a></li>
+            <!-- Add more functionality links here -->
+        </ul>
+        <form action="LogoutServlet" method="post">
+            <button type="submit">Logout</button>
+        </form>
+    </div>
+</body>
+</html>
+
+v) LogoutServlet
+
+package org.jsp.travelmate.dto;
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+@WebServlet("/logout")
+	public class LogoutServlet extends HttpServlet {
+	    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+	            throws ServletException, IOException {
+	        // Invalidate the session and redirect to the login page
+	        request.getSession().invalidate();
+	        response.sendRedirect("login_form.html");
+	    }
+	}
+
+
+=============================================================================
+2) Reservation System:
+
+i) reservation_form.html
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Reservation System</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div class="content">
+  <h2>Reservation System</h2>
+  <form action="ReservationServlet" method="post">
+    <label for="trainNumber">Train Number:</label>
+    <input type="text" id="trainNumber" name="trainNumber" required><br>
+    
+    <label for="classType">Class Type:</label>
+    <select id="classType" name="classType">
+      <option value="Sleeper">Sleeper</option>
+     <option value="2A">2A tier</option>
+     <option value="3A">3A tier</option>
+    </select><br>
+    
+    <label for="journeyDate">Date of Journey:</label>
+    <input type="date" id="journeyDate" name="journeyDate" required><br>
+    
+    <label for="fromPlace">From:</label>
+    <input type="text" id="fromPlace" name="fromPlace" required><br>
+    
+    <label for="toPlace">To:</label>
+    <input type="text" id="toPlace" name="toPlace" required><br>
+  
+    
+    <button type="submit">Submit</button>
+  </form>
+</div>
+</body>
+</html>
+
+ii) ReservationServlet
+
+package org.jsp.travelmate.dto;
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+@WebServlet("/ReservationServlet")
+public class ReservationServlet extends HttpServlet {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String trainNumber = request.getParameter("trainNumber");
+        String classType = request.getParameter("classType");
+        String journeyDate = request.getParameter("journeyDate");
+        String fromPlace = request.getParameter("fromPlace");
+        String toPlace = request.getParameter("toPlace");
+
+        request.setAttribute("trainNumber", trainNumber);
+        request.setAttribute("classType", classType);
+        request.setAttribute("journeyDate", journeyDate);
+        request.setAttribute("fromPlace", fromPlace);
+        request.setAttribute("toPlace", toPlace);
+
+        // Forward to the success page
+        request.getRequestDispatcher("reservation_success.jsp").forward(request, response);
+    }
+}
+
+iii) ReservationDao
+
+package org.jsp.travelmate.dao;
+
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityTransaction;
+import javax.persistence.NoResultException;
+import javax.persistence.Persistence;
+import javax.persistence.TypedQuery;
+
+import org.jsp.travelmate.dto.Reservation;
+
+public class ReservationDao {
+    private static EntityManagerFactory entityManagerFactory;
+
+    static {
+        entityManagerFactory = Persistence.createEntityManagerFactory("travelmate");
+    }
+
+    public void saveReservation(Reservation reservation) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        EntityTransaction transaction = entityManager.getTransaction();
+
+        try {
+            transaction.begin();
+            entityManager.persist(reservation);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction.isActive()) {
+                transaction.rollback();
+            }
+            e.printStackTrace();
+        } finally {
+            entityManager.close();
+        }
+    }
+    public Reservation getReservationByPNR(String pnr) {
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+
+        try {
+            TypedQuery<Reservation> query = entityManager.createQuery(
+                "SELECT r FROM Reservation r WHERE r.pnr = :pnr", Reservation.class);
+            query.setParameter("pnr", pnr);
+
+            return query.getSingleResult();
+        } catch (NoResultException e) {
+            return null; // No matching reservation found
+        } finally {
+            entityManager.close();
+        }
+    }
+}
+
+iv) reservation_success.jsp
+
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Reservation Success</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div class="content">
+  <h2>Reservation Successful</h2>
+  <p>Your reservation has been successfully processed. Here are the details:</p>
+  <ul>
+    <li><strong>Train Number:</strong> ${trainNumber}</li>
+    <li><strong>Class Type:</strong> ${classType}</li>
+    <li><strong>Date of Journey:</strong> ${journeyDate}</li>
+    <li><strong>From:</strong> ${fromPlace}</li>
+    <li><strong>To:</strong> ${toPlace}</li>
+    
+  </ul>
+</div>
+</body>
+</html>
+
+====================================================================
+3) Cancellation 
+
+i) cancellation_form.html
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Cancellation Form</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div class="content">
+  <h2>Cancellation Form</h2>
+  <form action="CancellationServlet" method="post">
+    <label for="pnr">Enter PNR Number:</label>
+    <input type="text" id="pnr" name="pnr" required><br>
+    <button type="submit">Submit</button>
+  </form>
+</div>
+</body>
+</html>
+
+ii) cancellation_details.jsp
+
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cancellation Details</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <div class="content">
+        <h2>Reservation Details</h2>
+        <p>PNR: <%= reservation.getPnr() %></p>
+        <p>Train Number: <%= reservation.getTrainNumber() %></p>
+        <p>Train Name: <%= reservation.getTrainName() %></p>
+        <p>Class Type: <%= reservation.getClassType() %></p>
+        <p>Date of Journey: <%= reservation.getDateOfJourney() %></p>
+        <p>From: <%= reservation.getFromPlace() %></p>
+        <p>To: <%= reservation.getToPlace() %></p>
+        <form action="ConfirmCancellationServlet" method="post">
+            <input type="hidden" name="pnr" value="<%= reservation.getPnr() %>">
+            <button type="submit">Confirm Cancellation</button>
+        </form>
+    </div>
+</body>
+</html>
+
+iii)  ConfirmCancellationServlet
+
+package org.jsp.travelmate.dto;
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.jsp.travelmate.dao.ReservationDao;
+
+@WebServlet("/CancellationServlet")
+public class CancellationServlet extends HttpServlet {
+    private ReservationDao reservationDao;
+
+    @Override
+    public void init() throws ServletException {
+        super.init();
+        reservationDao = new ReservationDao();
+    }
+
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String pnr = request.getParameter("pnr");
+
+        // Fetch reservation details using the ReservationDao
+        Reservation reservation = reservationDao.getReservationByPNR(pnr);
+
+        if (reservation != null) {
+            request.setAttribute("reservation", reservation);
+            
+            request.getRequestDispatcher("cancellation_details.jsp").forward(request, response);
+        } else {
+            response.sendRedirect("cancellation_error.jsp");
+        }
+    }
+}
+
+
+iv) cancellation_success.jsp
+
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Cancellation Success</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div class="content">
+  <h2>Cancellation Successful</h2>
+  <p>Your reservation with PNR number <%= request.getAttribute("pnr") %> has been cancelled.</p>
+  <!-- You can display more cancellation details here if needed. -->
+</div>
+</body>
+</html>
+
+v) cancellation_error.jsp
+
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cancellation Error</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <div class="content">
+        <h2>Error</h2>
+        <p><%= request.getAttribute("errorMessage") %></p>
+        <p><a href="user_dashboard.jsp">Go back to User Dashboard</a></p>
+    </div>
+</body>
+</html>
+
+====================================================================================
+4) Entities:
+
+i) User.java
+
+package org.jsp.travelmate.dto;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+
+@Entity
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String username;
+    private String password;
+	public Long getId() {
+		return id;
+	}
+	public void setId(Long id) {
+		this.id = id;
+	}
+	public String getUsername() {
+		return username;
+	}
+	public void setUsername(String username) {
+		this.username = username;
+	}
+	public String getPassword() {
+		return password;
+	}
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+    
+    
+}
+
+ii) Reservation.java
+
+package org.jsp.travelmate.dto;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+
+@Entity
+public class Reservation {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String trainNumber;
+    private String trainName;
+    private String classType;
+    private String dateOfJourney;
+    private String fromPlace;
+    private String toDestination;
+    private Long userId; // Foreign key reference to User entity's id
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getTrainNumber() {
+        return trainNumber;
+    }
+
+    public void setTrainNumber(String trainNumber) {
+        this.trainNumber = trainNumber;
+    }
+
+    public String getTrainName() {
+        return trainName;
+    }
+
+    public void setTrainName(String trainName) {
+        this.trainName = trainName;
+    }
+
+    public String getClassType() {
+        return classType;
+    }
+
+    public void setClassType(String classType) {
+        this.classType = classType;
+    }
+
+    public String getDateOfJourney() {
+        return dateOfJourney;
+    }
+
+    public void setDateOfJourney(String dateOfJourney) {
+        this.dateOfJourney = dateOfJourney;
+    }
+
+    public String getFromPlace() {
+        return fromPlace;
+    }
+
+    public void setFromPlace(String fromPlace) {
+        this.fromPlace = fromPlace;
+    }
+
+    public String getToDestination() {
+        return toDestination;
+    }
+
+    public void setToDestination(String toDestination) {
+        this.toDestination = toDestination;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
